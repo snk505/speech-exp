@@ -1,219 +1,34 @@
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Speech Recording Experiment</title>
-  <style>
-    body { font-family: Segoe UI, Arial, sans-serif; background: #fff; color:#000; margin:0; }
-    .wrap { max-width: 760px; margin: 0 auto; padding:16px; }
-    .card { border:1px solid #ccc; border-radius:10px; padding:12px; margin-top:12px; }
-    button { cursor:pointer; }
-  </style>
-</head>
-<body>
-<div class="wrap">
-  <h2>🧪 Speech Recording Experiment</h2>
-  <div style="font-size:15px;margin-bottom:12px;">Total sentences: <span id="totalN"></span></div>
-
-  <!-- Screen 0: Mic Check -->
-  <div id="scrMic" class="card">
-    <div style="font-weight:700;margin-bottom:8px;">Microphone Check</div>
-    <div style="margin-bottom:10px;">Enable your microphone and make a short test recording. This test is not saved.</div>
-    <div style="display:flex;gap:8px;margin:8px 0;">
-      <button id="micEnable" style="padding:8px 12px;border-radius:6px;background:#2563eb;color:#fff;border:0">Enable Microphone</button>
-      <button id="micRec"  style="padding:8px 12px;border-radius:6px;background:#16a34a;color:#fff;border:0">🔴 Record Test</button>
-      <button id="micStop" disabled style="padding:8px 12px;border-radius:6px;background:#dc2626;color:#fff;border:0">⏹ Stop</button>
-      <button id="micNext" disabled style="margin-left:auto;padding:8px 12px;border-radius:6px;background:#111827;color:#fff;border:0">Continue</button>
-    </div>
-    <div id="micStatus" style="padding:8px;border:1px dashed #999;border-radius:6px;">Waiting for mic permission…</div>
-    <div id="micPlayer" style="margin-top:10px"></div>
-  </div>
-
-  <!-- Screen 1: Participant ID -->
-  <div id="scrId" class="card" style="display:none;">
-    <label style="font-weight:600;">Participant ID:</label>
-    <input id="pid" type="text" placeholder="001" style="margin:0 8px;padding:6px 10px;border:1px solid #888;border-radius:6px">
-    <button id="go" style="padding:6px 12px;border-radius:6px;background:#2563eb;color:#fff;border:0">Start</button>
-    <div id="warn" style="color:#b91c1c;display:none;margin-top:6px">Use only letters, numbers, _ or -</div>
-    <div id="pidTaken" style="color:#b91c1c;display:none;margin-top:6px"></div>
-  </div>
-
-  <!-- Screen 2: Task -->
-  <div id="scrTask" class="card" style="display:none;">
-    <div id="prog" style="font-size:14px;margin-bottom:4px;"></div>
-    <div id="phaseLabel" style="font-weight:700;margin:6px 0;"></div>
-    <div id="hint" style="margin-bottom:12px;font-size:15px;"></div>
-
-    <div class="card" style="background:#fff;">
-      <div style="font-size:13px;margin-bottom:4px;">Sentence:</div>
-      <div id="sent" style="font-size:19px;line-height:1.5;"></div>
-    </div>
-
-    <div style="display:flex;gap:8px;margin:8px 0">
-      <button id="rec"  style="padding:8px 12px;border-radius:6px;background:#16a34a;color:#fff;border:0">🔴 Record</button>
-      <button id="stop" disabled style="padding:8px 12px;border-radius:6px;background:#dc2626;color:#fff;border:0">⏹ Stop</button>
-      <button id="save" disabled style="padding:8px 12px;border-radius:6px;background:#2563eb;color:#fff;border:0">💾 Save</button>
-    </div>
-
-    <div id="status" style="padding:8px;border:1px dashed #999;border-radius:6px;">Ready…</div>
-    <div id="player" style="margin-top:10px"></div>
-  </div>
-
-  <!-- Screen 3: Done -->
-  <div id="scrDone" class="card" style="display:none;">
-    <b style="color:#16a34a;">✅ Thank you! The experiment is complete.</b>
-  </div>
-</div>
-
-<script>
-/* ===== CONFIG ===== */
-const API_BASE = "https://monkfish-app-c8mpr.ondigitalocean.app"; // <- fill after you deploy the API (e.g., https://your-api.ondigitalocean.app)
-const SENTS = [
-  // put your sentences here or load from a static file; example:
-  "I like to eat strawberries.",
-  "She bought a new bicycle.",
-  "My brother plays the guitar.",
-  "We went to the market yesterday.",
-  "Do you want some coffee?"
-];
-/* =================== */
-
-document.getElementById("totalN").textContent = SENTS.length;
-const $ = id => document.getElementById(id);
-const show = (el,vis)=> el.style.display = vis ? "block" : "none";
-function slug(s){ return (s||"").trim().replace(/\s+/g,"_").replace(/[^A-Za-z0-9_\-]/g,"").slice(0,50)||"sentence"; }
-
-let i=0, pid="", phase=0; // 0=EN, 1=YUE
-let rec=null, chunks=[], mime="", b64="", blobForSave=null;
-// Mic check
-let micRec=null, micChunks=[], micMime="", micReady=false;
-
-// --- Mic Check ---
-$("micEnable").onclick = async ()=>{
-  try{
-    const s = await navigator.mediaDevices.getUserMedia({audio:true});
-    s.getTracks().forEach(t=>t.stop());
-    micReady = true;
-    $("micStatus").textContent = "✅ Microphone permission granted.";
-    $("micNext").disabled = false;
-  }catch(e){ $("micStatus").textContent = "❌ Unable to access microphone: " + (e && e.message || e); }
-};
-$("micRec").onclick = async ()=>{
-  try{
-    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
-    const prefs = ['audio/webm;codecs=opus','audio/ogg;codecs=opus','audio/mp4'];
-    let chosen=''; for(const t of prefs){ if(MediaRecorder.isTypeSupported(t)){ chosen=t; break; } }
-    micRec = new MediaRecorder(stream, chosen?{mimeType:chosen}:undefined);
-    micMime = micRec.mimeType || chosen || '';
-    micChunks = [];
-    micRec.ondataavailable = e=>{ if(e.data?.size) micChunks.push(e.data); };
-    micRec.onstop = ()=>{
-      const b = new Blob(micChunks,{type:micMime||'audio/webm'});
-      $("micPlayer").innerHTML = '<audio controls src="'+URL.createObjectURL(b)+'" style="width:100%"></audio>';
-      $("micStop").disabled = true; micReady = true; $("micNext").disabled = false;
-      $("micStatus").textContent = "✅ Test recording ready (not saved).";
-      stream.getTracks().forEach(t=>t.stop());
-    };
-    micRec.start();
-    $("micStop").disabled = false;
-    $("micStatus").textContent = "🔴 Recording test…";
-  }catch(e){ $("micStatus").textContent = "❌ Unable to record test: " + (e && e.message || e); }
-};
-$("micStop").onclick = ()=>{ if(micRec && micRec.state==='recording') micRec.stop(); };
-$("micNext").onclick = ()=>{ if(!micReady){ $("micStatus").textContent = "❌ Please enable mic or record a test first."; return; }
-  show($("scrMic"), false); show($("scrId"), true); };
-
-// --- ID screen: naive client-side uniqueness via Spaces listing (optional) ---
-// For now: keep it simple. We'll enforce uniqueness server-side later.
-// You can preflight with a /taken endpoint; here we just validate format and proceed.
-$("go").onclick = async ()=>{
-  const v = ($("pid").value||"").trim();
-  $("pidTaken").style.display = "none";
-  if(!/^[A-Za-z0-9_-]+$/.test(v)){ $("warn").style.display = "block"; return; }
-  $("warn").style.display = "none";
-  pid = v;
-  show($("scrId"), false); show($("scrTask"), true);
-  i=0; phase=0; render();
-};
-
-// --- Core render ---
-const PHASE_LABEL = [
-  "Step 1 of 2 — Say the sentence in English (as written).",
-  "Step 2 of 2 — Translate into Cantonese and say it."
-];
-const PHASE_HINT = [
-  "Read the sentence in English, clearly and naturally.",
-  "Translate the sentence into Cantonese and say it in Cantonese."
-];
-function render(){
-  $("prog").textContent = `Sentence ${i+1} of ${SENTS.length}`;
-  $("phaseLabel").textContent = PHASE_LABEL[phase];
-  $("hint").textContent = PHASE_HINT[phase];
-  $("sent").textContent = SENTS[i];
-  $("player").innerHTML = "";
-  $("save").disabled = true; b64=""; blobForSave=null;
-  $("status").textContent = "Ready…";
-}
-
-// --- Recording ---
-$("rec").onclick = async ()=>{
-  try{
-    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
-    const prefs = ['audio/webm;codecs=opus','audio/ogg;codecs=opus','audio/mp4'];
-    let chosen=''; for(const t of prefs){ if(MediaRecorder.isTypeSupported(t)){ chosen=t; break; } }
-    rec = new MediaRecorder(stream, chosen?{mimeType:chosen}:undefined);
-    mime = rec.mimeType || chosen || '';
-    chunks=[]; b64=""; blobForSave=null;
-    rec.ondataavailable = e => { if(e.data?.size) chunks.push(e.data); };
-    rec.onstop = ()=>{
-      const b = new Blob(chunks,{type:mime||'audio/webm'});
-      blobForSave = b;
-      $("player").innerHTML = '<audio controls src="'+URL.createObjectURL(b)+'" style="width:100%"></audio>';
-      $("save").disabled = false;
-      $("status").textContent = "✅ Recording ready to save.";
-      stream.getTracks().forEach(t=>t.stop());
-    };
-    rec.start();
-    $("rec").disabled=true; $("stop").disabled=false; $("save").disabled=true;
-    $("status").textContent = "🔴 Recording…";
-  }catch(e){ $("status").textContent = "❌ Unable to access microphone: " + (e && e.message || e); }
-};
-$("stop").onclick = ()=>{ if(rec && rec.state==='recording'){ rec.stop(); $("rec").disabled=false; $("stop").disabled=true; } };
-
-// --- Save using presigned URL from backend ---
-async function saveRecording(){
-  if(!blobForSave){ $("status").textContent='❌ No recording.'; advance(); return; }
+async function saveRecording() {
+  if (!blobForSave) { $("status").textContent='❌ No recording.'; advance(); return; }
   $("status").textContent='⏳ Saving…';
-  try{
-    const ext = blobForSave.type.includes("ogg") ? "ogg"
-              : blobForSave.type.includes("webm") ? "webm"
-              : "dat";
-    const key = `sub${pid}_${String(i+1).padStart(3,'0')}_${slug(SENTS[i])}_${phase===0?'EN':'YUE'}.${ext}`;
 
-    const r = await fetch(`${API_BASE}/sign`, {
+  try {
+    const key = `sub${pid}_${String(i+1).padStart(3,'0')}_${slug(SENTS[i])}_${phase===0?'EN':'YUE'}.webm`;
+
+    // 1) Ask backend for presigned POST
+    const r = await fetch(`${API_BASE}/sign_post`, {
       method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ pid, key, content_type: blobForSave.type || `audio/${ext}` })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pid, key })
     });
-    if(!r.ok) throw new Error("sign failed");
-    const { url } = await r.json();
+    if (!r.ok) throw new Error("sign_post failed");
+    const { url, fields } = await r.json();
 
-    const put = await fetch(url, { method:"PUT", headers:{ "Content-Type": blobForSave.type || `audio/${ext}` }, body: blobForSave });
-    if(!put.ok) throw new Error("upload failed");
+    // 2) Build FormData WITHOUT setting headers; browser sets multipart boundary.
+    const fd = new FormData();
+    Object.entries(fields).forEach(([k, v]) => fd.append(k, v));
+    fd.append("file", new File([blobForSave], "rec.webm")); // no manual Content-Type
+
+    // 3) POST directly to Spaces
+    const put = await fetch(url, { method: "POST", body: fd }); // no headers
+    if (!(put.status === 201 || put.status === 204 || put.ok)) {
+      throw new Error(`upload POST failed: ${put.status}`);
+    }
 
     $("status").textContent = "✅ Saved.";
-  }catch(e){
+  } catch (e) {
+    console.error(e);
     $("status").textContent = "⚠️ Save failed. Moving on.";
   }
   advance();
 }
-$("save").onclick = saveRecording;
-
-function advance(){
-  if(phase===0){ phase=1; render(); }
-  else{ phase=0; i++; if(i < SENTS.length) render(); else { show($("scrTask"), false); show($("scrDone"), true); } }
-}
-</script>
-</body>
-</html>

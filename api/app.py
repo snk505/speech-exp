@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from fastapi.staticfiles import StaticFiles 
 import boto3, os
 
 SPACES_KEY     = os.environ.get("SPACES_KEY","")
@@ -86,7 +87,7 @@ def sign_url(req: SignReq):
         ExpiresIn=60 * 5,
     )
     return {"url": url, "key": key}
-
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 @app.get("/health")
 def health():

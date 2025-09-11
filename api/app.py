@@ -82,7 +82,6 @@ def sign_url(req: SignReq):
             "Bucket": SPACES_BUCKET,
             "Key": key,
             "ContentType": ct or "application/octet-stream",
-            "ACL": "private",
         },
         ExpiresIn=60 * 5,
     )

@@ -1,34 +1,38 @@
-async function saveRecording() {
-  if (!blobForSave) { $("status").textContent='❌ No recording.'; advance(); return; }
-  $("status").textContent='⏳ Saving…';
-
-  try {
+<script>
+  const API_BASE = ""; // same origin (this app serves API and UI)
+  // If you’re using presigned PUT:
+  async function saveRecordingPUT(blob) {
+    const ct = blob.type || "application/octet-stream";
     const key = `sub${pid}_${String(i+1).padStart(3,'0')}_${slug(SENTS[i])}_${phase===0?'EN':'YUE'}.webm`;
 
-    // 1) Ask backend for presigned POST
+    const r = await fetch(`${API_BASE}/sign`, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ pid, key, content_type: ct })
+    });
+    const { url } = await r.json();
+
+    const up = await fetch(url, { method:"PUT", headers: { "Content-Type": ct }, body: blob });
+    if (!up.ok) throw new Error("upload failed: "+up.status);
+  }
+
+  // OR if you switch to presigned POST (no preflight):
+  async function saveRecordingPOST(blob) {
+    const key = `sub${pid}_${String(i+1).padStart(3,'0')}_${slug(SENTS[i])}_${phase===0?'EN':'YUE'}.webm`;
     const r = await fetch(`${API_BASE}/sign_post`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {"Content-Type":"application/json"},
       body: JSON.stringify({ pid, key })
     });
-    if (!r.ok) throw new Error("sign_post failed");
     const { url, fields } = await r.json();
 
-    // 2) Build FormData WITHOUT setting headers; browser sets multipart boundary.
     const fd = new FormData();
-    Object.entries(fields).forEach(([k, v]) => fd.append(k, v));
-    fd.append("file", new File([blobForSave], "rec.webm")); // no manual Content-Type
+    Object.entries(fields).forEach(([k,v]) => fd.append(k, v));
+    fd.append("file", new File([blob], "rec.webm")); // don't set Content-Type header
 
-    // 3) POST directly to Spaces
-    const put = await fetch(url, { method: "POST", body: fd }); // no headers
-    if (!(put.status === 201 || put.status === 204 || put.ok)) {
-      throw new Error(`upload POST failed: ${put.status}`);
+    const up = await fetch(url, { method:"POST", body: fd });
+    if (!(up.status === 201 || up.status === 204 || up.ok)) {
+      throw new Error("upload POST failed: "+up.status);
     }
-
-    $("status").textContent = "✅ Saved.";
-  } catch (e) {
-    console.error(e);
-    $("status").textContent = "⚠️ Save failed. Moving on.";
   }
-  advance();
-}
+</script>

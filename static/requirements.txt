@@ -1,4 +1,0 @@
-/Procfile
-/requirements.txt   ← here
-/api/app.py
-/static/index.html

@@ -7,7 +7,7 @@ import boto3, os
 SPACES_KEY     = os.environ.get("SPACES_KEY","")
 SPACES_SECRET  = os.environ.get("SPACES_SECRET","")
 SPACES_BUCKET  = os.environ.get("SPACES_BUCKET","psycho-audio")
-SPACES_REGION  = os.environ.get("SPACES_REGION","nyc3")
+SPACES_REGION  = os.environ.get("SPACES_REGION","sgp1")
 SPACES_ENDPOINT = f"https://{SPACES_REGION}.digitaloceanspaces.com"
 
 s3 = boto3.client(

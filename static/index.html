@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Speech Recording Experiment</title>
+  <title>Speech Recording</title>
   <style>
     body { font-family: Segoe UI, Arial, sans-serif; background: #fff; color:#000; margin:0; }
     .wrap { max-width: 760px; margin: 0 auto; padding:16px; }
@@ -13,7 +13,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h2>🧪 Speech Recording Experiment</h2>
+  <h2>Speech Recording</h2>
   <div style="font-size:15px;margin-bottom:12px;">Total sentences: <span id="totalN"></span></div>
 
   <!-- Screen 0: Mic Check -->
@@ -21,9 +21,9 @@
     <div style="font-weight:700;margin-bottom:8px;">Microphone Check</div>
     <div style="margin-bottom:10px;">Enable your microphone and make a short test recording. This test is not saved.</div>
     <div style="display:flex;gap:8px;margin:8px 0;">
-      <button id="micEnable" style="padding:8px 12px;border-radius:6px;background:#2563eb;color:#fff;border:0">Enable Microphone</button>
-      <button id="micRec"  style="padding:8px 12px;border-radius:6px;background:#16a34a;color:#fff;border:0">🔴 Record Test</button>
-      <button id="micStop" disabled style="padding:8px 12px;border-radius:6px;background:#dc2626;color:#fff;border:0">⏹ Stop</button>
+      <button id="micEnable" style="padding:8px 12px;border-radius:6px;background:#2563eb;color:#fff;border:0">Enable microphone</button>
+      <button id="micRec"  style="padding:8px 12px;border-radius:6px;background:#16a34a;color:#fff;border:0">🔴 Start recording</button>
+      <button id="micStop" disabled style="padding:8px 12px;border-radius:6px;background:#dc2626;color:#fff;border:0">⏹ Stop recording</button>
       <button id="micNext" disabled style="margin-left:auto;padding:8px 12px;border-radius:6px;background:#111827;color:#fff;border:0">Continue</button>
     </div>
     <div id="micStatus" style="padding:8px;border:1px dashed #999;border-radius:6px;">Waiting for mic permission…</div>
@@ -51,9 +51,9 @@
     </div>
 
     <div style="display:flex;gap:8px;margin:8px 0">
-      <button id="rec"  style="padding:8px 12px;border-radius:6px;background:#16a34a;color:#fff;border:0">🔴 Record</button>
-      <button id="stop" disabled style="padding:8px 12px;border-radius:6px;background:#dc2626;color:#fff;border:0">⏹ Stop</button>
-      <button id="save" disabled style="padding:8px 12px;border-radius:6px;background:#2563eb;color:#fff;border:0">💾 Save</button>
+      <button id="rec"  style="padding:8px 12px;border-radius:6px;background:#16a34a;color:#fff;border:0">🔴 Start recording</button>
+      <button id="stop" disabled style="padding:8px 12px;border-radius:6px;background:#dc2626;color:#fff;border:0">⏹ Stop recording</button>
+      <button id="save" disabled style="padding:8px 12px;border-radius:6px;background:#2563eb;color:#fff;border:0">💾 Save & Continue</button>
     </div>
 
     <div id="status" style="padding:8px;border:1px dashed #999;border-radius:6px;">Ready…</div>
@@ -62,7 +62,7 @@
 
   <!-- Screen 3: Done -->
   <div id="scrDone" class="card" style="display:none;">
-    <b style="color:#16a34a;">✅ Thank you! The experiment is complete.</b>
+    <b style="color:#16a34a;">✅ Thank you! The recording session is complete.</b>
   </div>
 </div>
 

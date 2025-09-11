@@ -1,13 +1,13 @@
+# api/app.py
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from fastapi.staticfiles import StaticFiles 
-import boto3, os
+import boto3, os, re
 
-SPACES_KEY     = os.environ.get("SPACES_KEY","")
-SPACES_SECRET  = os.environ.get("SPACES_SECRET","")
-SPACES_BUCKET  = os.environ.get("SPACES_BUCKET","psycho-audio")
-SPACES_REGION  = os.environ.get("SPACES_REGION","nyc3")
+SPACES_KEY     = os.environ["SPACES_KEY"]
+SPACES_SECRET  = os.environ["SPACES_SECRET"]
+SPACES_BUCKET  = os.environ["SPACES_BUCKET"]       # e.g., "psycho-audio"
+SPACES_REGION  = os.environ["SPACES_REGION"]       # e.g., "sgp1"
 SPACES_ENDPOINT = f"https://{SPACES_REGION}.digitaloceanspaces.com"
 
 s3 = boto3.client(
@@ -21,74 +21,45 @@ s3 = boto3.client(
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # tighten later to your frontend origin
+    allow_origins=["*"],           # tighten to your frontend origin later
     allow_methods=["POST","OPTIONS"],
     allow_headers=["*"],
 )
 
-class SignReq(BaseModel):
+class PostReq(BaseModel):
     pid: str
-    key: str
-    content_type: str = "audio/webm"
+    key: str  # we’ll return the final key back
 
-ALLOWED_EXTS = (".webm", ".weba", ".ogg", ".opus", ".wav", ".mp4", ".m4a", ".mp3", ".dat")
+def _safe_key(k: str) -> str:
+    k = re.sub(r"\s+", "_", k.strip())
+    k = re.sub(r"[^A-Za-z0-9_\-./]", "", k)
+    if not re.search(r"\.(webm|weba|ogg|opus|wav|m4a|mp4|mp3)$", k, re.I):
+        k += ".webm"
+    return k[:200]
 
-CT_EXT_MAP = {
-    "audio/webm": ".webm",
-    "audio/webm;codecs=opus": ".webm",
-    "audio/weba": ".weba",
-    "audio/ogg": ".ogg",
-    "audio/ogg;codecs=opus": ".ogg",
-    "audio/opus": ".opus",
-    "audio/wav": ".wav",
-    "audio/x-wav": ".wav",
-    "audio/mp4": ".m4a",
-    "audio/mpeg": ".mp3",
-    "audio/mp3": ".mp3",
-    "audio/m4a": ".m4a",
-}
-
-def _ext_from_content_type(ct: str):
-    if not ct: return None
-    ct_l = ct.strip().lower()
-    if ct_l in CT_EXT_MAP:
-        return CT_EXT_MAP[ct_l]
-    if ";" in ct_l:
-        base = ct_l.split(";", 1)[0].strip()
-        return CT_EXT_MAP.get(base)
-    return None
-
-@app.post("/sign")
-def sign_url(req: SignReq):
+@app.post("/sign_post")
+def sign_post(req: PostReq):
     if not req.pid or not req.key:
         raise HTTPException(400, "missing fields")
+    key = _safe_key(req.key)
 
-    key = req.key.strip()
-    ct  = (req.content_type or "").strip()
-    k_low = key.lower()
-
-    # ensure allowed extension; infer and append if missing
-    if not any(k_low.endswith(ext) for ext in ALLOWED_EXTS):
-        ext = _ext_from_content_type(ct) or ".webm"
-        key = f"{key}{ext}"
-        k_low = key.lower()
-
-    if not any(k_low.endswith(ext) for ext in ALLOWED_EXTS):
-        raise HTTPException(400, f"unsupported extension on key: {key}")
-
-    url = s3.generate_presigned_url(
-        ClientMethod="put_object",
-        Params={
-            "Bucket": SPACES_BUCKET,
-            "Key": key,
-            "ContentType": ct or "application/octet-stream",
-        },
-        ExpiresIn=60 * 5,
-    )
-    return {"url": url, "key": key}
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
-
-@app.get("/health")
-def health():
-    return {"ok": True, "bucket": SPACES_BUCKET, "region": SPACES_REGION}
-
+    try:
+        # You can add conditions to enforce size limits, etc.
+        # DO NOT include Content-Type condition so the browser doesn't need to set it.
+        post = s3.generate_presigned_post(
+            Bucket=SPACES_BUCKET,
+            Key=key,
+            Fields={
+                # Return 201 for easier client-side success detection
+                "success_action_status": "201",
+            },
+            Conditions=[
+                {"success_action_status": "201"},
+                # Example: ["content-length-range", 1, 50 * 1024 * 1024],  # up to 50 MB
+            ],
+            ExpiresIn=300,
+        )
+        # post = { "url": "https://<bucket>.<region>.digitaloceanspaces.com", "fields": {...} }
+        return {"url": post["url"], "fields": post["fields"], "key": key}
+    except Exception as e:
+        raise HTTPException(500, f"sign_post error: {e}")

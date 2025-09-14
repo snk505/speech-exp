@@ -71,11 +71,54 @@
 const API_BASE = "https://monkfish-app-c8mpr.ondigitalocean.app"; // <- fill after you deploy the API (e.g., https://your-api.ondigitalocean.app)
 const SENTS = [
   // put your sentences here or load from a static file; example:
-  "I like to eat strawberries.",
-  "She bought a new bicycle.",
-  "My brother plays the guitar.",
-  "We went to the market yesterday.",
-  "Do you want some coffee?"
+  "She placed a bid on an internet auction.",
+"(Regarding hotel reservation) I did not confirm my booking.",
+"We don't accept VISA cards or cheques.",
+"I want to claim insurance.",
+"Here's your receipt.",
+"This is a good place for shopping.",
+"I like to collect old stamps.",
+"One Hong Kong dollar is about 13 cents (USD).",
+"I forgot to charge my Octopus Card.",
+"Roy wants a chocolate pie and a strawberry donut.",
+"The cream is too sweet.",
+"I put the jelly into the freezer.",
+"I don’t like rum.",
+"I want a sandwich, a toast and a waffle.",
+"I like vanilla ice cream.",
+"(At a restaurant) You don't need to give tips here.",
+"This is a quart of milk.",
+"I have a king size bed.",
+"This T-shirt is made of nylon.",
+"This pump is made of PVC.",
+"(After finishing a painting) You can use varnish to protect the color.",
+"I hate the smell of thinner.",
+"I want to attend the AIA carnival.",
+"This movie has a great cast.",
+"I will present this at a conference.",
+"Please click this button.",
+"(Regarding a book) I downloaded a soft copy.",
+"I want buy a new notebook computer.",
+"I need to print a form.",
+"The printer is hanging.",
+"I take the bus to work.",
+"You need to turn on the engine first.",
+"The lift is over there.",
+"Jane can drive a van.",
+"I want a 12 volt battery and a 100 watt light bulb.",
+"(Pointing to a chemical) This is ether.",
+"This is a microphone, also called a mike.",
+"The doctor says I don't have enough vitamin D.",
+"I bought this spanner to fix the sink.",
+"(I bought two lightbulbs.) One of them is a spare.",
+"Charlie dances with a stick.",
+"He is a cheap man.",
+"He does not have the qualification (for the job).",
+"There is no quota left this year.",
+"He failed math and had to repeat a year.",
+"He is a repeater.",
+"I don’t want to pose (for the picture).",
+"The old and new bosses have completely different styles."
 ];
 /* =================== */
 
@@ -139,12 +182,12 @@ $("go").onclick = async ()=>{
 
 // --- Core render ---
 const PHASE_LABEL = [
-  "Step 1 of 2 — Say the sentence in English (as written).",
-  "Step 2 of 2 — Translate into Cantonese and say it."
+  "Step 1 of 2 — Read the sentence in English (as written).",
+  "Step 2 of 2 — Translate the sentence into Cantonese."
 ];
 const PHASE_HINT = [
-  "Read the sentence in English, clearly and naturally.",
-  "Translate the sentence into Cantonese and say it in Cantonese."
+  "Read the sentence in English TWICE. Words in brackets do not need to be read.",
+  "Translate the sentence into casual conversational Cantonese and say it TWICE. Words in brackets do not need to be translated."
 ];
 function render(){
   $("prog").textContent = `Sentence ${i+1} of ${SENTS.length}`;

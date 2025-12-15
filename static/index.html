@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Speech Recording</title>
+  <title>Запись речи</title>
   <style>
     body { font-family: Segoe UI, Arial, sans-serif; background: #fff; color:#000; margin:0; }
     .wrap { max-width: 760px; margin: 0 auto; padding:16px; }
@@ -13,29 +13,29 @@
 </head>
 <body>
 <div class="wrap">
-  <h2>Speech Recording</h2>
-  <div style="font-size:15px;margin-bottom:12px;">Total sentences: <span id="totalN"></span></div>
+  <h2>Запись речи</h2>
+  <div style="font-size:15px;margin-bottom:12px;">Всего заданий: <span id="totalN"></span></div>
 
   <!-- Screen 0: Mic Check -->
   <div id="scrMic" class="card">
-    <div style="font-weight:700;margin-bottom:8px;">Microphone Check</div>
-    <div style="margin-bottom:10px;">Enable your microphone and make a short test recording. This test is not saved.</div>
+    <div style="font-weight:700;margin-bottom:8px;">Проверка микрофона</div>
+    <div style="margin-bottom:10px;">Разрешите доступ к микрофону и сделайте короткую тестовую запись. Тестовая запись не сохраняется.</div>
     <div style="display:flex;gap:8px;margin:8px 0;">
-      <button id="micEnable" style="padding:8px 12px;border-radius:6px;background:#2563eb;color:#fff;border:0">Enable microphone</button>
-      <button id="micRec"  style="padding:8px 12px;border-radius:6px;background:#16a34a;color:#fff;border:0">🔴 Start recording</button>
-      <button id="micStop" disabled style="padding:8px 12px;border-radius:6px;background:#dc2626;color:#fff;border:0">⏹ Stop recording</button>
-      <button id="micNext" disabled style="margin-left:auto;padding:8px 12px;border-radius:6px;background:#111827;color:#fff;border:0">Continue</button>
+      <button id="micEnable" style="padding:8px 12px;border-radius:6px;background:#2563eb;color:#fff;border:0">Разрешить микрофон</button>
+      <button id="micRec"  style="padding:8px 12px;border-radius:6px;background:#16a34a;color:#fff;border:0">🔴 Начать запись</button>
+      <button id="micStop" disabled style="padding:8px 12px;border-radius:6px;background:#dc2626;color:#fff;border:0">⏹ Остановить</button>
+      <button id="micNext" disabled style="margin-left:auto;padding:8px 12px;border-radius:6px;background:#111827;color:#fff;border:0">Продолжить</button>
     </div>
-    <div id="micStatus" style="padding:8px;border:1px dashed #999;border-radius:6px;">Waiting for mic permission…</div>
+    <div id="micStatus" style="padding:8px;border:1px dashed #999;border-radius:6px;">Ожидание разрешения на микрофон…</div>
     <div id="micPlayer" style="margin-top:10px"></div>
   </div>
 
   <!-- Screen 1: Participant ID -->
   <div id="scrId" class="card" style="display:none;">
-    <label style="font-weight:600;">Participant ID:</label>
+    <label style="font-weight:600;">Идентификатор участника:</label>
     <input id="pid" type="text" placeholder="001" style="margin:0 8px;padding:6px 10px;border:1px solid #888;border-radius:6px">
-    <button id="go" style="padding:6px 12px;border-radius:6px;background:#2563eb;color:#fff;border:0">Start</button>
-    <div id="warn" style="color:#b91c1c;display:none;margin-top:6px">Use only letters, numbers, _ or -</div>
+    <button id="go" style="padding:6px 12px;border-radius:6px;background:#2563eb;color:#fff;border:0">Начать</button>
+    <div id="warn" style="color:#b91c1c;display:none;margin-top:6px">Используйте только буквы, цифры, _ или -</div>
     <div id="pidTaken" style="color:#b91c1c;display:none;margin-top:6px"></div>
   </div>
 
@@ -46,23 +46,23 @@
     <div id="hint" style="margin-bottom:12px;font-size:15px;"></div>
 
     <div class="card" style="background:#fff;">
-      <div id="promptLabel" style="font-size:13px;margin-bottom:4px;">Sentence:</div>
+      <div id="promptLabel" style="font-size:13px;margin-bottom:4px;">Предложение:</div>
       <div id="sent" style="font-size:19px;line-height:1.5;"></div>
     </div>
 
     <div style="display:flex;gap:8px;margin:8px 0">
-      <button id="rec"  style="padding:8px 12px;border-radius:6px;background:#16a34a;color:#fff;border:0">🔴 Start recording</button>
-      <button id="stop" disabled style="padding:8px 12px;border-radius:6px;background:#dc2626;color:#fff;border:0">⏹ Stop recording</button>
-      <button id="save" disabled style="padding:8px 12px;border-radius:6px;background:#2563eb;color:#fff;border:0">💾 Save & Continue</button>
+      <button id="rec"  style="padding:8px 12px;border-radius:6px;background:#16a34a;color:#fff;border:0">🔴 Начать запись</button>
+      <button id="stop" disabled style="padding:8px 12px;border-radius:6px;background:#dc2626;color:#fff;border:0">⏹ Остановить</button>
+      <button id="save" disabled style="padding:8px 12px;border-radius:6px;background:#2563eb;color:#fff;border:0">💾 Сохранить и продолжить</button>
     </div>
 
-    <div id="status" style="padding:8px;border:1px dashed #999;border-radius:6px;">Ready…</div>
+    <div id="status" style="padding:8px;border:1px dashed #999;border-radius:6px;">Готово…</div>
     <div id="player" style="margin-top:10px"></div>
   </div>
 
   <!-- Screen 3: Done -->
   <div id="scrDone" class="card" style="display:none;">
-    <b style="color:#16a34a;">✅ Thank you! The recording session is complete.</b>
+    <b style="color:#16a34a;">✅ Спасибо! Сеанс записи завершён.</b>
   </div>
 </div>
 
@@ -91,7 +91,7 @@ const RUS_SENTS = [
 // Stage 2: Russian text(s)
 const TEXTS = [
   {
-    title: "Text A",
+    title: "Текст A",
     body: `Вставьте сюда ваш связный текст на русском.
 
 Можно в несколько абзацев.
@@ -102,15 +102,17 @@ const TEXTS = [
 // Two stages, one recording per item
 const STAGES = [
   {
-    name: "Stage 1 — Russian sentences",
-    promptLabel: "Sentence:",
-    hint: "Read the sentence in Russian TWICE. Words in brackets do not need to be read.",
+    name: "Этап 1 — Предложения на русском",
+    promptLabel: "Sentence:",      // keep for existing kindTag logic
+    promptLabelRu: "Предложение:",
+    hint: "Прочитайте предложение по-русски ДВА РАЗА. Слова в скобках читать не нужно.",
     items: RUS_SENTS.map((s, idx) => ({ id: `sent${idx+1}`, body: s }))
   },
   {
-    name: "Stage 2 — Russian text",
-    promptLabel: "Text:",
-    hint: "Read the text in Russian naturally at a comfortable pace.",
+    name: "Этап 2 — Текст на русском",
+    promptLabel: "Text:",          // keep for existing kindTag logic
+    promptLabelRu: "Текст:",
+    hint: "Прочитайте текст по-русски в естественном темпе.",
     items: TEXTS.map((t, idx) => ({ id: `text${idx+1}`, body: t.body, title: t.title }))
   }
 ];
@@ -130,7 +132,7 @@ function extFromMime(m){
 }
 
 // Display counts (optional)
-$("totalN").textContent = `${RUS_SENTS.length} sentences + ${TEXTS.length} text(s)`;
+$("totalN").textContent = `${RUS_SENTS.length} предложений + ${TEXTS.length} текст(ов)`;
 
 /* ===== State ===== */
 let stage = 0;   // 0..STAGES.length-1
@@ -148,10 +150,10 @@ $("micEnable").onclick = async ()=>{
     const s = await navigator.mediaDevices.getUserMedia({audio:true});
     s.getTracks().forEach(t=>t.stop());
     micReady = true;
-    $("micStatus").textContent = "✅ Microphone permission granted.";
+    $("micStatus").textContent = "✅ Доступ к микрофону разрешён.";
     $("micNext").disabled = false;
   }catch(e){
-    $("micStatus").textContent = "❌ Unable to access microphone: " + (e && e.message || e);
+    $("micStatus").textContent = "❌ Не удалось получить доступ к микрофону: " + (e && e.message || e);
   }
 };
 
@@ -170,14 +172,14 @@ $("micRec").onclick = async ()=>{
       $("micStop").disabled = true;
       micReady = true;
       $("micNext").disabled = false;
-      $("micStatus").textContent = "✅ Test recording ready (not saved).";
+      $("micStatus").textContent = "✅ Тестовая запись готова (не сохраняется).";
       stream.getTracks().forEach(t=>t.stop());
     };
     micRec.start();
     $("micStop").disabled = false;
-    $("micStatus").textContent = "🔴 Recording test…";
+    $("micStatus").textContent = "🔴 Идёт тестовая запись…";
   }catch(e){
-    $("micStatus").textContent = "❌ Unable to record test: " + (e && e.message || e);
+    $("micStatus").textContent = "❌ Не удалось выполнить тестовую запись: " + (e && e.message || e);
   }
 };
 
@@ -185,7 +187,7 @@ $("micStop").onclick = ()=>{ if(micRec && micRec.state==='recording') micRec.sto
 
 $("micNext").onclick = ()=>{
   if(!micReady){
-    $("micStatus").textContent = "❌ Please enable mic or record a test first.";
+    $("micStatus").textContent = "❌ Сначала разрешите микрофон или сделайте тестовую запись.";
     return;
   }
   show($("scrMic"), false);
@@ -212,18 +214,18 @@ function render(){
   const st = STAGES[stage];
   const it = st.items[item];
 
-  $("prog").textContent = `${st.name} — Item ${item+1} of ${st.items.length}`;
+  $("prog").textContent = `${st.name} — Пункт ${item+1} из ${st.items.length}`;
   $("phaseLabel").textContent = st.name;           // reuse existing slot
   $("hint").textContent = st.hint;
 
-  $("promptLabel").textContent = st.promptLabel;
+  $("promptLabel").textContent = st.promptLabelRu || (st.promptLabel.toLowerCase().includes("text") ? "Текст:" : "Предложение:");
 
   $("sent").textContent = it.body;
   $("sent").style.whiteSpace = "pre-wrap"; // keep line breaks for text stage
 
   $("player").innerHTML = "";
   $("save").disabled = true;
-  $("status").textContent = "Ready…";
+  $("status").textContent = "Готово…";
   blobForSave = null;
 }
 
@@ -244,7 +246,7 @@ $("rec").onclick = async ()=>{
       blobForSave = b;
       $("player").innerHTML = '<audio controls src="'+URL.createObjectURL(b)+'" style="width:100%"></audio>';
       $("save").disabled = false;
-      $("status").textContent = "✅ Recording ready to save.";
+      $("status").textContent = "✅ Запись готова к сохранению.";
       stream.getTracks().forEach(t=>t.stop());
     };
 
@@ -252,9 +254,9 @@ $("rec").onclick = async ()=>{
     $("rec").disabled = true;
     $("stop").disabled = false;
     $("save").disabled = true;
-    $("status").textContent = "🔴 Recording…";
+    $("status").textContent = "🔴 Идёт запись…";
   }catch(e){
-    $("status").textContent = "❌ Unable to access microphone: " + (e && e.message || e);
+    $("status").textContent = "❌ Не удалось получить доступ к микрофону: " + (e && e.message || e);
   }
 };
 
@@ -265,6 +267,7 @@ $("stop").onclick = ()=>{
     $("stop").disabled = true;
   }
 };
+
 function slugCyrillic(s){
   // Keep letters (Latin/Cyrillic), numbers, _ and -, replace spaces with _
   // Remove punctuation to avoid ugly URLs. Limit length.
@@ -277,16 +280,15 @@ function slugCyrillic(s){
     .slice(0, 60) || "sent";
 }
 
-
 /* ===== Save via presigned URL ===== */
 async function saveRecording(){
   if(!blobForSave){
-    $("status").textContent = "❌ No recording.";
+    $("status").textContent = "❌ Нет записи.";
     advance();
     return;
   }
 
-  $("status").textContent = "⏳ Saving…";
+  $("status").textContent = "⏳ Сохранение…";
 
   const st = STAGES[stage];
   const it = st.items[item];
@@ -297,10 +299,8 @@ async function saveRecording(){
     const itemTag = `I${String(item+1).padStart(3,'0')}`;
     const kindTag = st.promptLabel.toLowerCase().includes("text") ? "TEXT" : "SENT";
 
-    // Safe ASCII key (no Cyrillic)
     const name = (kindTag === "TEXT") ? "text" : slugCyrillic(it.body);
     const key  = `sub${pid}_${stageTag}_${itemTag}_${kindTag}_${name}_${it.id}.${ext}`;
-
 
     const r = await fetch(`${API_BASE}/sign`, {
       method: "POST",
@@ -321,9 +321,9 @@ async function saveRecording(){
     });
     if(!put.ok) throw new Error("upload failed");
 
-    $("status").textContent = "✅ Saved.";
+    $("status").textContent = "✅ Сохранено.";
   }catch(e){
-    $("status").textContent = "⚠️ Save failed. Moving on.";
+    $("status").textContent = "⚠️ Не удалось сохранить. Переходим дальше.";
   }
 
   advance();

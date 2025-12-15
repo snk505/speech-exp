@@ -46,7 +46,7 @@
     <div id="hint" style="margin-bottom:12px;font-size:15px;"></div>
 
     <div class="card" style="background:#fff;">
-      <div style="font-size:13px;margin-bottom:4px;">Sentence:</div>
+      <div id="promptLabel" style="font-size:13px;margin-bottom:4px;">Sentence:</div>
       <div id="sent" style="font-size:19px;line-height:1.5;"></div>
     </div>
 
@@ -68,72 +68,81 @@
 
 <script>
 /* ===== CONFIG ===== */
-const API_BASE = "https://monkfish-app-c8mpr.ondigitalocean.app"; // <- fill after you deploy the API (e.g., https://your-api.ondigitalocean.app)
-const SENTS = [
-  // put your sentences here or load from a static file; example:
-"She placed a bid on an internet auction.",
-"(Regarding hotel reservation) I did not confirm my booking.",
-"We don't accept VISA cards or cheques.",
-"(At a restaurant) You don't need to give tips here.",
-"Here's your receipt.",
-"I want to claim insurance.",
-"This is a good place for shopping.",
-"I like to collect old stamps.",
-"One Hong Kong dollar is about 13 cents (in USD).",
-"I forgot to charge my phone.",
-"Roy wants a chocolate pie and a strawberry donut.",
-"The cream is too sweet.",
-"The cream soda is too sweet.",
-"I put the jelly into the fridge.",
-"(In the restaurant kitchen) There is a lot of meat in the freezer.",
-"I don’t like rum.",
-"I want a sandwich, a toast and a waffle.",
-"I like vanilla ice cream.",
-"This is a quart of milk.",
-"I have a king size bed.",
-"The size is wrong.",
-"This T-shirt is made of nylon.",
-"This pump is made of PVC.",
-"I hate the smell of thinner.",
-"I want to attend the AIA carnival.",
-"This movie has a great cast.",
-"I will present this at a conference.",
-"Please click this link (to go to the homepage).",
-"(Regarding a book) I downloaded a soft copy.",
-"I want to buy a new notebook computer.",
-"I need to print a form.",
-"The printer is hanging.",
-"I take the bus to work.",
-"You need to turn on the engine first.",
-"The lift is over there.",
-"Jessica can drive a van.",
-"I want a 12 volt battery and a 100 watt light bulb.",
-"This is a microphone (full name), also called a mic (short form).",
-"The doctor says I don't have enough vitamin D.",
-"I bought this spanner to fix the sink (in the kitchen).",
-"(I bought two lightbulbs.) One of them is a spare.",
-"Charlie dances with a stick.",
-"He is a cheap man.",
-"He does not have the qualification (for the job).",
-"There is no quota left this year.",
-"He failed math and had to repeat a year.",
-"He is a repeater.",
-"I don’t want to pose (for the picture).",
-"The old and new bosses have completely different styles."
+const API_BASE = "https://monkfish-app-c8mpr.ondigitalocean.app";
+
+// Stage 1: Russian sentences only
+const RUS_SENTS = [
+  "Наступила осень,",
+  "Антон стоит на мосту.",
+  "Какая завтра будет погода?",
+  "Где можно отдохнуть?",
+  "Можно я пойду в кино?",
+  "Он приедет в пятницу или в субботу?",
+  "А на шестом этаже?",
+  "Ваше имя? (при регистрации)",
+  "Какой сегодня день!",
+  "Сколько доброты в нем!",
+  "Какой вкусной сок!",
+  "Сколько студентов!",
+  "Какой он отличник! (то есть он не отличник)",
+  "Да какая она актриса! (то есть она не актриса)"
+];
+
+// Stage 2: Russian text(s)
+const TEXTS = [
+  {
+    title: "Text A",
+    body: `Вставьте сюда ваш связный текст на русском.
+
+Можно в несколько абзацев.
+С переносами строк — нормально.`
+  }
+];
+
+// Two stages, one recording per item
+const STAGES = [
+  {
+    name: "Stage 1 — Russian sentences",
+    promptLabel: "Sentence:",
+    hint: "Read the sentence in Russian TWICE. Words in brackets do not need to be read.",
+    items: RUS_SENTS.map((s, idx) => ({ id: `sent${idx+1}`, body: s }))
+  },
+  {
+    name: "Stage 2 — Russian text",
+    promptLabel: "Text:",
+    hint: "Read the text in Russian naturally at a comfortable pace.",
+    items: TEXTS.map((t, idx) => ({ id: `text${idx+1}`, body: t.body, title: t.title }))
+  }
 ];
 /* =================== */
 
-document.getElementById("totalN").textContent = SENTS.length;
 const $ = id => document.getElementById(id);
 const show = (el,vis)=> el.style.display = vis ? "block" : "none";
-function slug(s){ return (s||"").trim().replace(/\s+/g,"_").replace(/[^A-Za-z0-9_\-]/g,"").slice(0,50)||"sentence"; }
 
-let i=0, pid="", phase=0; // 0=EN, 1=YUE
-let rec=null, chunks=[], mime="", b64="", blobForSave=null;
+function extFromMime(m){
+  const t = (m||"").toLowerCase();
+  if (t.includes("ogg")) return "ogg";
+  if (t.includes("webm")) return "webm";
+  if (t.includes("mp4")) return "m4a";
+  if (t.includes("mpeg") || t.includes("mp3")) return "mp3";
+  if (t.includes("wav")) return "wav";
+  return "dat";
+}
+
+// Display counts (optional)
+$("totalN").textContent = `${RUS_SENTS.length} sentences + ${TEXTS.length} text(s)`;
+
+/* ===== State ===== */
+let stage = 0;   // 0..STAGES.length-1
+let item  = 0;   // 0..items.length-1
+let pid = "";
+
+let rec = null, chunks = [], mime = "", blobForSave = null;
+
 // Mic check
 let micRec=null, micChunks=[], micMime="", micReady=false;
 
-// --- Mic Check ---
+/* ===== Mic Check ===== */
 $("micEnable").onclick = async ()=>{
   try{
     const s = await navigator.mediaDevices.getUserMedia({audio:true});
@@ -141,8 +150,11 @@ $("micEnable").onclick = async ()=>{
     micReady = true;
     $("micStatus").textContent = "✅ Microphone permission granted.";
     $("micNext").disabled = false;
-  }catch(e){ $("micStatus").textContent = "❌ Unable to access microphone: " + (e && e.message || e); }
+  }catch(e){
+    $("micStatus").textContent = "❌ Unable to access microphone: " + (e && e.message || e);
+  }
 };
+
 $("micRec").onclick = async ()=>{
   try{
     const stream = await navigator.mediaDevices.getUserMedia({audio:true});
@@ -155,52 +167,67 @@ $("micRec").onclick = async ()=>{
     micRec.onstop = ()=>{
       const b = new Blob(micChunks,{type:micMime||'audio/webm'});
       $("micPlayer").innerHTML = '<audio controls src="'+URL.createObjectURL(b)+'" style="width:100%"></audio>';
-      $("micStop").disabled = true; micReady = true; $("micNext").disabled = false;
+      $("micStop").disabled = true;
+      micReady = true;
+      $("micNext").disabled = false;
       $("micStatus").textContent = "✅ Test recording ready (not saved).";
       stream.getTracks().forEach(t=>t.stop());
     };
     micRec.start();
     $("micStop").disabled = false;
     $("micStatus").textContent = "🔴 Recording test…";
-  }catch(e){ $("micStatus").textContent = "❌ Unable to record test: " + (e && e.message || e); }
+  }catch(e){
+    $("micStatus").textContent = "❌ Unable to record test: " + (e && e.message || e);
+  }
 };
-$("micStop").onclick = ()=>{ if(micRec && micRec.state==='recording') micRec.stop(); };
-$("micNext").onclick = ()=>{ if(!micReady){ $("micStatus").textContent = "❌ Please enable mic or record a test first."; return; }
-  show($("scrMic"), false); show($("scrId"), true); };
 
-// --- ID screen: naive client-side uniqueness via Spaces listing (optional) ---
-// For now: keep it simple. We'll enforce uniqueness server-side later.
-// You can preflight with a /taken endpoint; here we just validate format and proceed.
+$("micStop").onclick = ()=>{ if(micRec && micRec.state==='recording') micRec.stop(); };
+
+$("micNext").onclick = ()=>{
+  if(!micReady){
+    $("micStatus").textContent = "❌ Please enable mic or record a test first.";
+    return;
+  }
+  show($("scrMic"), false);
+  show($("scrId"), true);
+};
+
+/* ===== ID Screen ===== */
 $("go").onclick = async ()=>{
   const v = ($("pid").value||"").trim();
   $("pidTaken").style.display = "none";
   if(!/^[A-Za-z0-9_-]+$/.test(v)){ $("warn").style.display = "block"; return; }
   $("warn").style.display = "none";
   pid = v;
-  show($("scrId"), false); show($("scrTask"), true);
-  i=0; phase=0; render();
+
+  stage = 0; item = 0;
+
+  show($("scrId"), false);
+  show($("scrTask"), true);
+  render();
 };
 
-// --- Core render ---
-const PHASE_LABEL = [
-  "Step 1 of 2 — Read the sentence in English (as written).",
-  "Step 2 of 2 — Translate the sentence into Cantonese."
-];
-const PHASE_HINT = [
-  "Read the sentence in English TWICE. Words in brackets do not need to be read.",
-  "Translate the sentence into casual conversational Cantonese and say it TWICE. Words in brackets do not need to be translated."
-];
+/* ===== Render ===== */
 function render(){
-  $("prog").textContent = `Sentence ${i+1} of ${SENTS.length}`;
-  $("phaseLabel").textContent = PHASE_LABEL[phase];
-  $("hint").textContent = PHASE_HINT[phase];
-  $("sent").textContent = SENTS[i];
+  const st = STAGES[stage];
+  const it = st.items[item];
+
+  $("prog").textContent = `${st.name} — Item ${item+1} of ${st.items.length}`;
+  $("phaseLabel").textContent = st.name;           // reuse existing slot
+  $("hint").textContent = st.hint;
+
+  $("promptLabel").textContent = st.promptLabel;
+
+  $("sent").textContent = it.body;
+  $("sent").style.whiteSpace = "pre-wrap"; // keep line breaks for text stage
+
   $("player").innerHTML = "";
-  $("save").disabled = true; b64=""; blobForSave=null;
+  $("save").disabled = true;
   $("status").textContent = "Ready…";
+  blobForSave = null;
 }
 
-// --- Recording ---
+/* ===== Recording ===== */
 $("rec").onclick = async ()=>{
   try{
     const stream = await navigator.mediaDevices.getUserMedia({audio:true});
@@ -208,7 +235,9 @@ $("rec").onclick = async ()=>{
     let chosen=''; for(const t of prefs){ if(MediaRecorder.isTypeSupported(t)){ chosen=t; break; } }
     rec = new MediaRecorder(stream, chosen?{mimeType:chosen}:undefined);
     mime = rec.mimeType || chosen || '';
-    chunks=[]; b64=""; blobForSave=null;
+    chunks = [];
+    blobForSave = null;
+
     rec.ondataavailable = e => { if(e.data?.size) chunks.push(e.data); };
     rec.onstop = ()=>{
       const b = new Blob(chunks,{type:mime||'audio/webm'});
@@ -218,45 +247,95 @@ $("rec").onclick = async ()=>{
       $("status").textContent = "✅ Recording ready to save.";
       stream.getTracks().forEach(t=>t.stop());
     };
-    rec.start();
-    $("rec").disabled=true; $("stop").disabled=false; $("save").disabled=true;
-    $("status").textContent = "🔴 Recording…";
-  }catch(e){ $("status").textContent = "❌ Unable to access microphone: " + (e && e.message || e); }
-};
-$("stop").onclick = ()=>{ if(rec && rec.state==='recording'){ rec.stop(); $("rec").disabled=false; $("stop").disabled=true; } };
 
-// --- Save using presigned URL from backend ---
+    rec.start();
+    $("rec").disabled = true;
+    $("stop").disabled = false;
+    $("save").disabled = true;
+    $("status").textContent = "🔴 Recording…";
+  }catch(e){
+    $("status").textContent = "❌ Unable to access microphone: " + (e && e.message || e);
+  }
+};
+
+$("stop").onclick = ()=>{
+  if(rec && rec.state==='recording'){
+    rec.stop();
+    $("rec").disabled = false;
+    $("stop").disabled = true;
+  }
+};
+
+/* ===== Save via presigned URL ===== */
 async function saveRecording(){
-  if(!blobForSave){ $("status").textContent='❌ No recording.'; advance(); return; }
-  $("status").textContent='⏳ Saving…';
+  if(!blobForSave){
+    $("status").textContent = "❌ No recording.";
+    advance();
+    return;
+  }
+
+  $("status").textContent = "⏳ Saving…";
+
+  const st = STAGES[stage];
+  const it = st.items[item];
+
   try{
-    const ext = blobForSave.type.includes("ogg") ? "ogg"
-              : blobForSave.type.includes("webm") ? "webm"
-              : "dat";
-    const key = `sub${pid}_${String(i+1).padStart(3,'0')}_${slug(SENTS[i])}_${phase===0?'EN':'YUE'}.${ext}`;
+    const ext = extFromMime(blobForSave.type);
+    const stageTag = `S${stage+1}`;
+    const itemTag = `I${String(item+1).padStart(3,'0')}`;
+    const kindTag = st.promptLabel.toLowerCase().includes("text") ? "TEXT" : "SENT";
+
+    // Safe ASCII key (no Cyrillic)
+    const key = `sub${pid}_${stageTag}_${itemTag}_${kindTag}_${it.id}.${ext}`;
 
     const r = await fetch(`${API_BASE}/sign`, {
       method: "POST",
       headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ pid, key, content_type: blobForSave.type || `audio/${ext}` })
+      body: JSON.stringify({
+        pid,
+        key,
+        content_type: blobForSave.type || `audio/${ext}`
+      })
     });
     if(!r.ok) throw new Error("sign failed");
     const { url } = await r.json();
 
-    const put = await fetch(url, { method:"PUT", headers:{ "Content-Type": blobForSave.type || `audio/${ext}` }, body: blobForSave });
+    const put = await fetch(url, {
+      method: "PUT",
+      headers: { "Content-Type": blobForSave.type || `audio/${ext}` },
+      body: blobForSave
+    });
     if(!put.ok) throw new Error("upload failed");
 
     $("status").textContent = "✅ Saved.";
   }catch(e){
     $("status").textContent = "⚠️ Save failed. Moving on.";
   }
+
   advance();
 }
+
 $("save").onclick = saveRecording;
 
+/* ===== Advance across items then stages ===== */
 function advance(){
-  if(phase===0){ phase=1; render(); }
-  else{ phase=0; i++; if(i < SENTS.length) render(); else { show($("scrTask"), false); show($("scrDone"), true); } }
+  const st = STAGES[stage];
+
+  item++;
+  if(item < st.items.length){
+    render();
+    return;
+  }
+
+  item = 0;
+  stage++;
+  if(stage < STAGES.length){
+    render();
+    return;
+  }
+
+  show($("scrTask"), false);
+  show($("scrDone"), true);
 }
 </script>
 </body>

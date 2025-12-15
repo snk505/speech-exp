@@ -265,6 +265,18 @@ $("stop").onclick = ()=>{
     $("stop").disabled = true;
   }
 };
+function slugCyrillic(s){
+  // Keep letters (Latin/Cyrillic), numbers, _ and -, replace spaces with _
+  // Remove punctuation to avoid ugly URLs. Limit length.
+  return (s || "")
+    .normalize("NFKC")
+    .trim()
+    .replace(/\s+/g, "_")
+    .replace(/[^0-9A-Za-z_\-\u0400-\u04FF\u0500-\u052F\u2DE0-\u2DFF\uA640-\uA69F]/g, "")
+    .replace(/_+/g, "_")
+    .slice(0, 60) || "sent";
+}
+
 
 /* ===== Save via presigned URL ===== */
 async function saveRecording(){
@@ -286,7 +298,9 @@ async function saveRecording(){
     const kindTag = st.promptLabel.toLowerCase().includes("text") ? "TEXT" : "SENT";
 
     // Safe ASCII key (no Cyrillic)
-    const key = `sub${pid}_${stageTag}_${itemTag}_${kindTag}_${it.id}.${ext}`;
+    const name = (kindTag === "TEXT") ? "text" : slugCyrillic(it.body);
+    const key  = `sub${pid}_${stageTag}_${itemTag}_${kindTag}_${name}_${it.id}.${ext}`;
+
 
     const r = await fetch(`${API_BASE}/sign`, {
       method: "POST",

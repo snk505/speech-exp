@@ -35,7 +35,7 @@
     <label style="font-weight:600;">Идентификатор участника (имя на латинице + возраст):</label>
     <input id="pid" type="text" placeholder="001" style="margin:0 8px;padding:6px 10px;border:1px solid #888;border-radius:6px">
     <button id="go" style="padding:6px 12px;border-radius:6px;background:#2563eb;color:#fff;border:0">Начать</button>
-    <div id="warn" style="color:#b91c1c;display:none;margin-top:6px">Используйте только буквы, цифры, _ или -</div>
+    <div id="warn" style="color:#b91c1c;display:none;margin-top:6px">Пожалуйста, введите идентификатор (не пустой).</div>
     <div id="pidTaken" style="color:#b91c1c;display:none;margin-top:6px"></div>
   </div>
 
@@ -199,9 +199,13 @@ $("micNext").onclick = ()=>{
 $("go").onclick = async ()=>{
   const v = ($("pid").value||"").trim();
   $("pidTaken").style.display = "none";
-  if(!/^[A-Za-z0-9_-]+$/.test(v)){ $("warn").style.display = "block"; return; }
+  
+  // Разрешаем русские буквы и пробелы, но запрещаем совсем "пустое" и слишком короткое
+  if(!v){ $("warn").style.display = "block"; return; }
+  
   $("warn").style.display = "none";
-  pid = v;
+  pid = v; // оставляем оригинал для отображения/логики
+
 
   stage = 0; item = 0;
 
@@ -280,6 +284,17 @@ function slugCyrillic(s){
     .replace(/_+/g, "_")
     .slice(0, 60) || "sent";
 }
+function pidKeySafe(pidRaw){
+  // Разрешаем кириллицу + латиницу + цифры, пробелы превратим в _
+  // Уберём опасные символы для ключей/обработки.
+  return (pidRaw || "")
+    .normalize("NFKC")
+    .trim()
+    .replace(/\s+/g, "_")
+    .replace(/[^0-9A-Za-z_\-\u0400-\u04FF\u0500-\u052F\u2DE0-\u2DFF\uA640-\uA69F]/g, "")
+    .slice(0, 60) || "participant";
+}
+
 
 /* ===== Save via presigned URL ===== */
 async function saveRecording(){
